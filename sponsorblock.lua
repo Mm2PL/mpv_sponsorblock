@@ -6,12 +6,15 @@
 local ON_WINDOWS = package.config:sub(1,1) ~= "/"
 
 local options = {
+    -- Skip to Point of interest if available
+    auto_skip_to_poi = false,
+
     server_address = "https://sponsor.ajay.app",
 
     python_path = ON_WINDOWS and "python" or "python3",
 
     -- Categories to fetch
-    categories = "sponsor,intro,outro,interaction,selfpromo",
+    categories = "sponsor,intro,outro,interaction,selfpromo,poi_highlight",
 
     -- Categories to skip automatically
     skip_categories = "sponsor",
@@ -105,7 +108,7 @@ local fade_timer = nil
 local fade_dir = nil
 local volume_before = mp.get_property_number("volume")
 local categories = {}
-local all_categories = {"sponsor", "intro", "outro", "interaction", "selfpromo", "music_offtopic"}
+local all_categories = {"sponsor", "intro", "outro", "interaction", "selfpromo", "music_offtopic", "poi_highlight"}
 local chapter_cache = {}
 
 for category in string.gmatch(options.skip_categories, "([^,]+)") do
@@ -179,7 +182,10 @@ function process(uuid, t, new_ranges)
         end
     end
     category = string.match(t, "[^,]+$")
-    if categories[category] and end_time - start_time >= options.min_duration then
+    if category == "poi_highlight" then
+        mp.osd_message("[sponsorblock] Point of interest highlight is available.")
+    end
+    if category == "poi_highlight" or (categories[category] and end_time - start_time >= options.min_duration) then
         new_ranges[uuid] = {
             start_time = start_time,
             end_time = end_time,
@@ -249,6 +255,9 @@ function getranges(_, exists, db, more)
     local c_count = t_count(ranges)
     if c_count == 0 or r_count >= c_count then
         ranges = new_ranges
+    end
+    if options.auto_skip_to_poi then
+        skip_to_poi()
     end
 end
 
@@ -552,9 +561,21 @@ function submit_segment(category)
     end
 end
 
+function skip_to_poi()
+    for uuid, t in pairs(ranges) do
+        if t.category == "poi_highlight" then
+            mp.osd_message("[sponsorblock] skipped to point of interest")
+            mp.set_property("time-pos", t.start_time)
+            return
+        end
+    end
+    mp.osd_message("[sponsorblock] no poi found")
+end
+
 mp.register_event("file-loaded", file_loaded)
 mp.add_key_binding("g", "set_segment", set_segment)
 mp.add_key_binding("G", "submit_segment", submit_segment)
+mp.add_key_binding("a", "skip_to_poi", skip_to_poi)
 mp.add_key_binding("h", "upvote_segment", function() return vote("1") end)
 mp.add_key_binding("H", "downvote_segment", function() return vote("0") end)
 -- Bindings below are for backwards compatibility and could be removed at any time
