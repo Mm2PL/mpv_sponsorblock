@@ -15,6 +15,7 @@ Default key bindings:
 - G (shift+g) to submit a segment
 - h to upvote the last segment
 - H (shift+h) to downvote the last segment
+- a to skip to point of interest
 
 These can be remapped with the following script bindings: `sponsorblock/set_segment`, `sponsorblock/submit_segment`, `sponsorblock/upvote_segment`, `sponsorblock/downvote_segment`
 
